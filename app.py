@@ -14,7 +14,8 @@ st.set_page_config(
 # 1. Train and cache an expanded, distinct IT text classification model
 @st.cache_resource
 def get_trained_model():
-  training_logs = [
+  # Base lists of logs and their exact corresponding labels
+  base_logs = [
       # Database Errors
       (
           "Database connection pool exhausted and timeout occurred on master"
@@ -45,7 +46,7 @@ def get_trained_model():
       "CPU thermal throttling event logged on hypervisor node 4",
   ]
 
-  training_labels = [
+  base_labels = [
       "Database Error",
       "Database Error",
       "Database Error",
@@ -58,7 +59,11 @@ def get_trained_model():
       "Infrastructure Warning",
       "Infrastructure Warning",
       "Infrastructure Warning",
-  ] * 5  # Multiply to give the classifier more training weight
+  ]
+
+  # Replicate safely to increase training sample size
+  training_logs = base_logs * 5
+  training_labels = base_labels * 5
 
   # Pipeline: TF-IDF Vectorizer -> Logistic Regression Classifier
   model = Pipeline([
