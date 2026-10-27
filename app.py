@@ -7,34 +7,45 @@ from sklearn.pipeline import Pipeline
 
 # Page configuration
 st.set_page_config(
-    page_title="NLP Sentiment Dashboard", page_icon="📊", layout="centered"
+    page_title="IT Incident & Log Analyzer", page_icon="💻", layout="centered"
 )
 
 
-# 1. Train and cache the NLP model pipeline
+# 1. Train and cache the IT text classification model
 @st.cache_resource
 def get_trained_model():
-  training_texts = [
-      "This is a fantastic, wonderful, and amazing product!",
-      "Terrible experience, completely broken and useless.",
-      "Amazing quality, highly recommend it to everyone.",
-      "Worst purchase ever, absolute waste of money.",
-      "Love it, works like absolute charm.",
-      "Awful customer service and poor build quality.",
-  ] * 20
+  training_logs = [
+      "Database connection pool exhausted and timeout occurred on master node",
+      "SQL syntax error while executing user query on reporting schema",
+      "Network latency spike detected on firewall gateway interface 3",
+      "Packet loss and high jitter on primary router uplink",
+      "User authentication failed due to invalid LDAP token expiration",
+      "Multiple failed SSH login attempts detected from unauthorized IP",
+      "Disk storage usage exceeded 95 percent threshold on volume var",
+      "Out of memory error triggered by background worker process",
+  ] * 15
 
-  training_labels = [1, 0, 1, 0, 1, 0] * 20
+  # Categories: 0: Database, 1: Network, 2: Security, 3: Infrastructure/System
+  training_labels = [
+      "Database Error",
+      "Database Error",
+      "Network Issue",
+      "Network Issue",
+      "Security Alert",
+      "Security Alert",
+      "Infrastructure Warning",
+      "Infrastructure Warning",
+  ] * 15
 
   # Pipeline: TF-IDF Vectorizer -> Logistic Regression Classifier
   model = Pipeline([
       ("tfidf", TfidfVectorizer()),
       ("clf", LogisticRegression()),
   ])
-  model.fit(training_texts, training_labels)
+  model.fit(training_logs, training_labels)
 
-  # DataFrame for statistics
   training_df = pd.DataFrame(
-      {"text": training_texts, "label": training_labels}
+      {"log_text": training_logs, "category": training_labels}
   )
   return model, training_df
 
@@ -42,48 +53,43 @@ def get_trained_model():
 model, training_df = get_trained_model()
 
 # UI Layout
-st.title("📊 NLP Sentiment Analyzer Dashboard")
+st.title("💻 IT Incident & Log Classification Dashboard")
 st.write(
-    "A live web app powered by **Machine Learning (TF-IDF, Logistic"
-    " Regression)** and **Streamlit**."
+    "A live web application powered by **Machine Learning (TF-IDF & Logistic"
+    " Regression)** to automatically categorize technical support tickets and"
+    " server error logs."
 )
 
 # User Input Text
-st.sidebar.header("✍️ Test a Sentence")
-user_text = st.sidebar.text_area(
-    "Enter a review or sentence:", "This product is fantastic and works great!"
+st.sidebar.header("🔍 Test a System Log / Ticket")
+user_input = st.sidebar.text_area(
+    "Enter system log message or ticket description:",
+    "Connection refused when attempting to reach the primary database cluster",
 )
 
-if st.button("Analyze Sentiment", type="primary"):
-  # Predict input text
-  pred_class = model.predict([user_text])[0]
-  prob_vector = model.predict_proba([user_text])[0]
-  conf_score = prob_vector[pred_class]
+if st.button("Classify Incident", type="primary"):
+  # Predict category
+  predicted_category = model.predict([user_input])[0]
+  probabilities = model.predict_proba([user_input])[0]
+  confidence = max(probabilities)
 
   st.divider()
   col1, col2 = st.columns(2)
   with col1:
-    if pred_class == 1:
-      st.success("**Prediction: Positive Sentiment 😊**")
-    else:
-      st.error("**Prediction: Negative Sentiment 😞**")
+    st.subheader("🏷️ Classification Result")
+    st.info(f"**Detected Category:** {predicted_category}")
   with col2:
-    st.metric(label="Confidence Score", value=f"{conf_score:.2%}")
+    st.metric(label="Model Confidence", value=f"{confidence:.2%}")
 
-  # Visualization 1: Prediction Confidence Bar Chart
-  st.subheader("📈 Prediction Probability Breakdown")
-  chart_data = pd.DataFrame(
-      {
-          "Sentiment Category": ["Negative (0)", "Positive (1)"],
-          "Probability": prob_vector,
-      }
+  # Visualization: Prediction Probability across all IT Categories
+  st.subheader("📊 Category Probability Distribution")
+  prob_df = pd.DataFrame(
+      {"Category": model.classes_, "Probability": probabilities}
   )
-  st.bar_chart(chart_data.set_index("Sentiment Category"))
+  st.bar_chart(prob_df.set_index("Category"))
 
-# Visualization 2: Dataset Statistics Chart
+# Dataset Analytics Section
 st.divider()
-st.subheader("📊 Training Dataset Class Distribution")
-class_counts = (
-    training_df["label"].value_counts().rename({0: "Negative", 1: "Positive"})
-)
-st.bar_chart(class_counts)
+st.subheader("📈 Training Dataset Incident Distribution")
+category_counts = training_df["category"].value_counts()
+st.bar_chart(category_counts)
