@@ -1,4 +1,4 @@
-pyspark==3.3.6
 streamlit
 pandas
 matplotlib
+scikit-learn
