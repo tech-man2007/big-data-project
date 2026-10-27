@@ -14,7 +14,6 @@ st.set_page_config(
 # 1. Train and cache an expanded, distinct IT text classification model
 @st.cache_resource
 def get_trained_model():
-  # Base lists of logs and their exact corresponding labels
   base_logs = [
       # Database Errors
       (
@@ -61,7 +60,6 @@ def get_trained_model():
       "Infrastructure Warning",
   ]
 
-  # Replicate safely to increase training sample size
   training_logs = base_logs * 5
   training_labels = base_labels * 5
 
@@ -96,14 +94,12 @@ user_input = st.sidebar.text_area(
 )
 
 if st.button("Classify Incident", type="primary"):
-  # Predict category
   predicted_category = model.predict([user_input])[0]
   probabilities = model.predict_proba([user_input])[0]
   confidence = max(probabilities)
 
   st.divider()
 
-  # Top Metric Cards
   col1, col2 = st.columns(2)
   with col1:
     st.metric(
@@ -114,7 +110,7 @@ if st.button("Classify Incident", type="primary"):
 
   st.markdown("### 📊 Interactive Probability Breakdown")
 
-  # Visualization 1: Plotly Horizontal Bar Chart for Confidence Distribution
+  # Visualization 1: Plotly Horizontal Bar Chart
   prob_df = pd.DataFrame(
       {"Category": model.classes_, "Probability": probabilities}
   )
@@ -123,12 +119,15 @@ if st.button("Classify Incident", type="primary"):
       x="Probability",
       y="Category",
       orientation="h",
-      text_auto=".1%",
       color="Probability",
       color_continuousscale="Blues",
       title="Confidence per Category",
   )
-  fig_bar.update_layout(yaxis={"categoryorder": "total ascending"})
+  # Safe text template formatting instead of text_auto
+  fig_bar.update_traces(texttemplate="%{x:.1%}", textposition="outside")
+  fig_bar.update_layout(
+      yaxis={"categoryorder": "total ascending"}, uniformtext_minsize=8
+  )
   st.plotly_chart(fig_bar, use_container_width=True)
 
 # Dataset Analytics Section
@@ -139,7 +138,7 @@ category_counts = (
 )
 category_counts.columns = ["Category", "Count"]
 
-# Visualization 2: Plotly Donut Chart for Dataset Balance
+# Visualization 2: Plotly Donut Chart
 fig_donut = px.pie(
     category_counts,
     names="Category",
