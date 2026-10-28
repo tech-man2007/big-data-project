@@ -1,9 +1,12 @@
+# data_generator.py
 import json
 import random
 import time
 from datetime import datetime, timezone
 from faker import Faker
 from textblob import TextBlob
+import threading
+import os
 
 fake = Faker()
 platforms = ["X", "Reddit", "LinkedIn", "Instagram"]
@@ -35,17 +38,19 @@ def generate_post():
         "sentiment": label
     }
 
-def stream_data(filename):
-    try:
+def _stream_loop(filename):
+    if not os.path.exists(filename):
+        with open(filename, "w") as f:
+            pass
+            
+    while True:
+        post = generate_post()
         with open(filename, 'a') as f:
-            while True:
-                post = generate_post()
-                f.write(json.dumps(post) + '\n')
-                f.flush()
-                time.sleep(random.uniform(0.3, 1.5))
-    except KeyboardInterrupt:
-        pass
+            f.write(json.dumps(post) + '\n')
+            f.flush()
+        time.sleep(random.uniform(0.3, 1.5))
 
-if __name__ == "__main__":
-    open("social_stream.jsonl", "w").close()
-    stream_data("social_stream.jsonl")
+def start_background_stream(filename="social_stream.jsonl"):
+    # Runs the generator in a background daemon thread
+    thread = threading.Thread(target=_stream_loop, args=(filename,), daemon=True)
+    thread.start()
