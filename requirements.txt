@@ -1,0 +1,6 @@
+streamlit
+duckdb
+faker
+pandas
+textblob
+plotly
